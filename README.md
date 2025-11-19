@@ -2,7 +2,7 @@
 
 Learn to build privacy-preserving identity verification with [Self Protocol](https://self.xyz/) - from frontend QR codes to smart contract attestations on Celo.
 
-> 📺 **New to Self?** Watch the [ETHGlobal Workshop](https://www.youtube.com/live/0Jg1o9BFUBs?si=4g0okIn91QMIzew-) first.
+> 📺 **New to Self?** Watch the [ETHGlobal Workshop](https://www.loom.com/share/8a6d116a5f66415998a496f06fefdc23) first.
 
 This main branch of the repo contains an example of onchain verification. If you would like to see an example with offchain/backend verification, please check out the 'backend-verification' branch.
 
@@ -209,7 +209,7 @@ contract ProofOfHuman is SelfVerificationRoot {
 
 - 📱 **Telegram Community**: [Self Protocol Builders Group](https://t.me/selfprotocolbuilder)
 - 📖 **Documentation**: [docs.self.xyz](https://docs.self.xyz)
-- 🎥 **Workshop Video**: [ETHGlobal Cannes](https://www.youtube.com/live/0Jg1o9BFUBs)
+- 🎥 **Workshop Video**: [ETHGlobal Buenos Aires](https://www.loom.com/share/8a6d116a5f66415998a496f06fefdc23)
 
 ---
 
