@@ -6,6 +6,7 @@ import {console2} from "forge-std/console2.sol";
 import {ProofOfHumanSender} from "../src/ProofOfHumanSender.sol";
 import {IMailboxV3} from "../src/IMailboxV3.sol";
 import {SelfUtils} from "@selfxyz/contracts/contracts/libraries/SelfUtils.sol";
+import {SelfStructs} from "@selfxyz/contracts/contracts/libraries/SelfStructs.sol";
 
 contract MockMailbox is IMailboxV3 {
     uint32 public constant override localDomain = 11142220; // Celo Sepolia
@@ -41,7 +42,9 @@ contract MockMailbox is IMailboxV3 {
 }
 
 contract MockIdentityHub {
-    // Minimal mock for testing
+    function setVerificationConfigV2(SelfStructs.VerificationConfigV2 memory) external pure returns (bytes32) {
+        return keccak256("mock-config-id");
+    }
 }
 
 contract ProofOfHumanSenderTest is Test {
@@ -96,7 +99,8 @@ contract ProofOfHumanSenderTest is Test {
         assertEq(sender.defaultRecipient(), newRecipient);
     }
 
-    function testFail_UpdateDefaultRecipientZeroAddress() public {
+    function test_RevertWhen_UpdateDefaultRecipientZeroAddress() public {
+        vm.expectRevert(ProofOfHumanSender.ZeroAddressRecipient.selector);
         sender.updateDefaultRecipient(address(0));
     }
 
@@ -112,7 +116,8 @@ contract ProofOfHumanSenderTest is Test {
         sender.sendVerificationCrossChain(receiver);
     }
 
-    function testFail_SendVerificationToZeroAddress() public {
+    function test_RevertWhen_SendVerificationToZeroAddress() public {
+        vm.expectRevert(ProofOfHumanSender.ZeroAddressRecipient.selector);
         sender.sendVerificationCrossChain{value: 0.001 ether}(address(0));
     }
 

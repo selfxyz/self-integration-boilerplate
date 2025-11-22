@@ -58,4 +58,3 @@ contract DeployProofOfHumanReceiver is Script {
         console2.log("   cast send %s 'setTrustedSenderEnforcement(bool)' true --rpc-url base-sepolia", address(receiver));
     }
 }
-

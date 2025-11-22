@@ -1,19 +1,27 @@
-# Self Workshop
+# Self + Hyperlane Workshop Frontend
 
-This project demonstrates integration with the [Self Protocol](https://self.xyz/) for identity verification in a Next.js application. Users can verify their identity using the Self mobile app by scanning a QR code.
+This project demonstrates cross-chain identity verification using [Self Protocol](https://self.xyz/) for identity verification on Celo and [Hyperlane](https://hyperlane.xyz/) for bridging verification data to Base.
 
 ## Features
 
-- QR code generation for Self Protocol integration
-- Identity verification flow
-- Customizable identity verification parameters
+- 🔐 Identity verification via Self Protocol on Celo Sepolia
+- 🌉 Automatic cross-chain bridging via Hyperlane to Base Sepolia (~2 minutes)
+- 📱 Mobile-friendly QR code interface
+- 🔄 **Real-time verification status tracking on Base** - polls every 5 seconds
+- 📊 Live bridging status with visual feedback
+- 🔗 Dynamic links to block explorers and Hyperlane message tracking
+- ⏱️ Automatic detection when verification arrives on Base
 
 ## Prerequisites
 
 - Node.js 20.x or higher
 - NPM or Yarn
-- Self Protocol App [iOS](https://apps.apple.com/us/app/self-zk/id6478563710) or [Android](https://play.google.com/store/apps/details?id=com.proofofpassportapp&pli=1) installed on your mobile device
-- A public endpoint for the verification callback (can use [ngrok](https://ngrok.com/) for local development)
+- Self Protocol App installed on your mobile device:
+  - [iOS](https://apps.apple.com/us/app/self-zk/id6478563710)
+  - [Android](https://play.google.com/store/apps/details?id=com.proofofpassportapp)
+- Deployed contracts:
+  - ProofOfHumanSender on Celo Sepolia
+  - ProofOfHumanReceiver on Base Sepolia
 
 ## Environment Setup
 
@@ -23,64 +31,168 @@ This project demonstrates integration with the [Self Protocol](https://self.xyz/
    ```
 
 2. Configure the environment variables:
-   - `NEXT_PUBLIC_SELF_ENDPOINT`: Set to your verification endpoint (your deployed smart contract address if doing on chain verificagion, or your backend HTTPS endpoint if you are doing offchain verification (e.g., ngrok URL))
-   - `NEXT_PUBLIC_SELF_APP_NAME`: Your application name (default: "Self Workshop")
-   - `NEXT_PUBLIC_SELF_SCOPE_SEED`: Seed used to generate your scope (default: "self-workshop")
+   ```bash
+   # Sender contract address (deployed on Celo Sepolia) - MUST BE LOWERCASE
+   NEXT_PUBLIC_SELF_ENDPOINT=0xyour_sender_contract_address
+
+   # Receiver contract address (deployed on Base Sepolia) - MUST BE LOWERCASE
+   NEXT_PUBLIC_RECEIVER_ADDRESS=0xyour_receiver_contract_address
+
+   # Application name
+   NEXT_PUBLIC_SELF_APP_NAME="Self + Hyperlane Workshop"
+
+   # Scope seed (must match deployment)
+   NEXT_PUBLIC_SELF_SCOPE_SEED="proof-of-human-hyperlane"
+   ```
+
+   **Important:** Contract addresses MUST be lowercase to match on-chain scope calculations.
 
 ## Getting Started
 
 1. Install dependencies:
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
-2A. Offchain Verification - Local Development (using ngrok):
+2. Make sure you have deployed both contracts:
    ```bash
-   npx ngrok http 3000
-   ```
-   - Copy the public URL (e.g., `https://abc123.ngrok.io`) and set it as `NEXT_PUBLIC_SELF_ENDPOINT` in your `.env` file.
-   - Set `NEXT_PUBLIC_SELF_SCOPE_SEED` to match your backend's scope seed.
-   - Set the `endpointType` in `page.tsx` to `"https"` for mainnet or `"staging_https"` for testnet
-
-2B. Offchain Verification - Production (deployed backend):
-   - Deploy your backend verification server to a cloud provider (Vercel, Railway, AWS, etc.)
-   - Copy your deployed backend's public URL (e.g., `https://your-api.vercel.app`)
-   - Set it as `NEXT_PUBLIC_SELF_ENDPOINT` in your `.env` file
-   - Set `NEXT_PUBLIC_SELF_SCOPE_SEED` to match your backend's scope seed
-   - Set the `endpointType` in `page.tsx` to `"https"` for mainnet or `"staging_https"` for testnet
-
-2C. Onchain Verification (smart contract):
-   - Navigate to the contracts folder and run the deployment script:
-   ```bash
+   # From the contracts directory:
    cd ../contracts
-   ./script/deploy-proof-of-human.sh
+   
+   # Deploy receiver on Base Sepolia first:
+   ./script/deploy-proof-of-human-receiver.sh
+   
+   # Then deploy sender on Celo Sepolia:
+   ./script/deploy-proof-of-human-sender.sh
    ```
-   - Copy the deployed contract address (**must be lowercase**) and set it as `NEXT_PUBLIC_SELF_ENDPOINT` in your `.env` file
-   - Copy the scope seed value and set it as `NEXT_PUBLIC_SELF_SCOPE_SEED` in your `.env` file
-   - Set the `endpointType` in `page.tsx` to `"celo"` for mainnet (real ID documents) or `"staging_celo"` for testnet (mock ID documents)
 
-3. Run the development server:
+3. Update your `.env` file with the deployed contract addresses.
+
+4. Run the development server:
    ```bash
    npm run dev
-   # or
-   yarn dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+5. Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ## How It Works
 
-1. When users visit the homepage, a unique QR code is generated using the Self Protocol.
-2. Users scan this QR code with their Self app.
-3. The Self app prompts users to share their identity information.
-4. After successful verification, users are redirected to the `/verified` page.
+### Verification Flow
+
+1. **User scans QR code** with Self Protocol mobile app
+2. **Verification happens on Celo Sepolia** via ProofOfHumanSender contract
+3. **Automatic bridging** - Verification data is sent cross-chain via Hyperlane
+4. **Data arrives on Base** - ProofOfHumanReceiver stores verification status
+5. **User sees success page** with links to track the cross-chain message
+
+### Architecture
+
+```
+User Mobile App
+      ↓
+[Scan QR Code]
+      ↓
+Celo Sepolia
+├─ ProofOfHumanSender
+├─ SelfVerificationRoot
+└─ customVerificationHook
+      ↓
+   Hyperlane
+   (1-2 min)
+      ↓
+Base Sepolia
+└─ ProofOfHumanReceiver
+```
+
+## Key Components
+
+### Main Page (`app/page.tsx`)
+- QR code generation and display
+- Cross-chain flow explanation
+- Contract address display
+- Links to block explorers
+
+### Success Page (`app/verified/page.tsx`)
+- Verification confirmation
+- **Real-time cross-chain bridging status** ✨
+  - Automatically polls Base Sepolia every 5 seconds
+  - Shows live status: Pending → Checking → Completed
+  - Completes in ~2 minutes
+- Direct links to:
+  - Celo Sepolia Explorer (source transaction)
+  - Hyperlane Explorer (message tracking by sender address)
+  - Base Sepolia Explorer (destination contract)
 
 ## Customization
 
-The application can be customized by modifying the following files:
+### Modify Verification Requirements
 
-- `src/app/page.tsx`: Frontend Self Protocol integration
-  - Customize the identity requirements in the `disclosures` section
-  - Modify the success callback behavior
+Edit `app/page.tsx`, `disclosures` section:
+
+```javascript
+disclosures: { 
+  minimumAge: 18,
+  excludedCountries: [countries.UNITED_STATES],
+  // Optional fields:
+  // name: true,
+  // issuing_state: true,
+  // nationality: true,
+  // date_of_birth: true,
+}
+```
+
+### Change Networks
+
+To deploy on mainnet:
+- Use Celo Mainnet for sender
+- Use Base Mainnet for receiver
+- Update `endpointType` from `"staging_celo"` to `"celo"`
+- Update contract addresses and RPC URLs
+
+## Tracking Verification
+
+### Check on Celo Sepolia (Source)
+```bash
+cast call <SENDER_ADDRESS> \
+  "verificationSuccessful()(bool)" \
+  --rpc-url https://forno.celo-sepolia.celo-testnet.org
+```
+
+### Track on Hyperlane
+Visit: https://explorer.hyperlane.xyz
+
+### Check on Base Sepolia (Destination)
+```bash
+cast call <RECEIVER_ADDRESS> \
+  "isVerified(address)(bool)" \
+  <USER_ADDRESS> \
+  --rpc-url https://sepolia.base.org
+```
+
+## Troubleshooting
+
+### QR Code Not Loading
+- Check that `NEXT_PUBLIC_SELF_ENDPOINT` is set and lowercase
+- Verify contract is deployed on Celo Sepolia
+- Ensure `NEXT_PUBLIC_SELF_SCOPE_SEED` matches deployment
+
+### Verification Not Bridging
+- Automatic bridging requires ETH sent with verification transaction
+- Check Hyperlane Explorer for message status
+- Verify receiver contract is deployed on Base Sepolia
+- Try manual bridging using the SendVerificationCrossChain script
+
+### Environment Variables Not Loading
+- Environment variables must start with `NEXT_PUBLIC_` to be accessible in client-side code
+- Restart the dev server after changing `.env`
+
+## Resources
+
+- [Self Protocol Docs](https://docs.self.xyz/)
+- [Hyperlane Docs](https://docs.hyperlane.xyz/)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Telegram Support](https://t.me/selfprotocolbuilder)
+
+## License
+
+MIT

@@ -194,24 +194,6 @@ contract ProofOfHumanReceiver is IMessageRecipient, Ownable {
         emit TrustedSenderRemoved(senderBytes32);
     }
 
-    /**
-     * @notice Add a trusted sender (bytes32 format)
-     * @param senderBytes32 Sender address as bytes32
-     */
-    function addTrustedSenderBytes32(bytes32 senderBytes32) external onlyOwner {
-        trustedSenders[senderBytes32] = true;
-        emit TrustedSenderAdded(senderBytes32);
-    }
-
-    /**
-     * @notice Remove a trusted sender (bytes32 format)
-     * @param senderBytes32 Sender address as bytes32
-     */
-    function removeTrustedSenderBytes32(bytes32 senderBytes32) external onlyOwner {
-        trustedSenders[senderBytes32] = false;
-        emit TrustedSenderRemoved(senderBytes32);
-    }
-
     // ============ View Functions ============
 
     /**
@@ -256,19 +238,6 @@ contract ProofOfHumanReceiver is IMessageRecipient, Ownable {
      */
     function isTrustedSender(address sender) external view returns (bool) {
         return trustedSenders[sender.addressToBytes32()];
-    }
-
-    /**
-     * @notice Check if a sender is trusted (bytes32 format)
-     * @param senderBytes32 Sender address as bytes32
-     * @return True if trusted, false otherwise
-     */
-    function isTrustedSenderBytes32(bytes32 senderBytes32)
-        external
-        view
-        returns (bool)
-    {
-        return trustedSenders[senderBytes32];
     }
 
     /**

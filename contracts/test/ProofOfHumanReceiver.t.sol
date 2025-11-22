@@ -127,12 +127,6 @@ contract ProofOfHumanReceiverTest is Test {
         assertTrue(receiver.isTrustedSender(senderContract));
     }
 
-    function test_AddTrustedSenderBytes32() public {
-        bytes32 senderBytes32 = senderContract.addressToBytes32();
-        receiver.addTrustedSenderBytes32(senderBytes32);
-        assertTrue(receiver.isTrustedSenderBytes32(senderBytes32));
-    }
-
     function test_RemoveTrustedSender() public {
         receiver.addTrustedSender(senderContract);
         assertTrue(receiver.isTrustedSender(senderContract));
@@ -178,4 +172,3 @@ contract ProofOfHumanReceiverTest is Test {
         assertEq(receiver.getUserAddress(userIdentifier2), user2);
     }
 }
-

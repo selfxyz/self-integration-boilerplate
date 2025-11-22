@@ -7,7 +7,10 @@ import {ProofOfHumanSender} from "../src/ProofOfHumanSender.sol";
 
 /**
  * @title SendVerificationCrossChain
- * @notice Script to send verification data cross-chain after user has been verified
+ * @notice Script to manually send verification data cross-chain after user has been verified
+ * @dev NOTE: With automatic bridging enabled, this script is optional.
+ *      Verification data is automatically bridged when ETH is sent with the verification transaction.
+ *      Use this script only if you need to manually re-send verification data or send to a custom recipient.
  * 
  * Run with:
  * forge script script/SendVerificationCrossChain.s.sol:SendVerificationCrossChain \
@@ -20,9 +23,10 @@ contract SendVerificationCrossChain is Script {
         address senderAddress = vm.envAddress("SENDER_ADDRESS");
         address receiverAddress = vm.envAddress("RECEIVER_ADDRESS");
 
-        console2.log("=== Sending Verification Cross-Chain ===");
+        console2.log("=== Manually Sending Verification Cross-Chain ===");
         console2.log("Sender contract:", senderAddress);
         console2.log("Receiver contract:", receiverAddress);
+        console2.log("\nNOTE: If automatic bridging is enabled, this is optional.");
 
         ProofOfHumanSender sender = ProofOfHumanSender(payable(senderAddress));
 

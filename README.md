@@ -1,16 +1,49 @@
-# Self Protocol Workshop
+# Self Protocol + Hyperlane Cross-Chain Verification Workshop
 
-Learn to build privacy-preserving identity verification with [Self Protocol](https://self.xyz/) - from frontend QR codes to smart contract attestations on Celo.
+Learn to build privacy-preserving identity verification with [Self Protocol](https://self.xyz/) and bridge it cross-chain using [Hyperlane](https://hyperlane.xyz/) - verify on Celo, use on Base!
 
 > 📺 **New to Self?** Watch the [ETHGlobal Workshop](https://www.youtube.com/live/0Jg1o9BFUBs?si=4g0okIn91QMIzew-) first.
 
-This main branch of the repo contains an example of onchain verification. If you would like to see an example with offchain/backend verification, please check out the 'backend-verification' branch.
+This branch demonstrates cross-chain verification bridging. For simple on-chain verification, check the `main` branch.
+
+## 🌉 Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  CELO SEPOLIA (Source Chain)                                 │
+│                                                               │
+│  ┌──────────────────────────────────────┐                   │
+│  │  ProofOfHumanSender                   │                   │
+│  │  - Inherits SelfVerificationRoot     │                   │
+│  │  - Verifies users via Self Protocol  │                   │
+│  │  - Automatic cross-chain bridging    │                   │
+│  └────────────────┬─────────────────────┘                   │
+│                   │                                           │
+│                   │ Hyperlane Message                        │
+│                   ▼                                           │
+└───────────────────┼───────────────────────────────────────────┘
+                    │
+                    │
+┌───────────────────┼───────────────────────────────────────────┐
+│  BASE SEPOLIA (Destination Chain)                            │
+│                   │                                           │
+│                   ▼                                           │
+│  ┌──────────────────────────────────────┐                   │
+│  │  ProofOfHumanReceiver                 │                   │
+│  │  - Receives Hyperlane messages       │                   │
+│  │  - Stores verification data          │                   │
+│  │  - Simple & gas-efficient            │                   │
+│  └──────────────────────────────────────┘                   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+```
 
 ## Prerequisites
 
 - Node.js 20+
 - [Self Mobile App](https://self.xyz)
-- Celo wallet with testnet funds
+- Celo Sepolia wallet with testnet funds
+- Base Sepolia wallet with testnet funds (for receiver deployment)
 
 ---
 
@@ -22,6 +55,7 @@ This main branch of the repo contains an example of onchain verification. If you
 # Clone the workshop repository
 git clone <repository-url>
 cd workshop
+git checkout hyperlane-example
 
 # Install frontend dependencies
 cd app
@@ -31,71 +65,94 @@ cd ..
 # Install contract dependencies
 cd contracts
 npm install        
-forge install foundry-rs/forge-std
+forge install
 ```
 
-### Step 2: Smart Contract Deployment
+### Step 2: Deploy Receiver Contract (Base Sepolia)
 
-Navigate to the contracts folder and configure deployment:
+First, deploy the receiver contract on Base Sepolia:
 
 ```bash
-# Copy and configure environment
+cd contracts
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Edit `.env` with your Base Sepolia wallet:
 ```bash
 # Your private key (with 0x prefix)
 PRIVATE_KEY=0xyour_private_key_here
-
-# Network selection
-NETWORK=celo-sepolia
-
-# Scope calculation
-SCOPE_SEED="self-workshop"
 ```
 
-Deploy the contract:
+Deploy the receiver:
 ```bash
 # Make script executable
-chmod +x script/deploy-proof-of-human.sh
+chmod +x script/deploy-proof-of-human-receiver.sh
 
-# Deploy contract (handles everything automatically)
-./script/deploy-proof-of-human.sh
+# Deploy receiver on Base Sepolia
+./script/deploy-proof-of-human-receiver.sh
 ```
 
-> **⚠️ Troubleshooting Celo Sepolia**: If you encounter a `Chain 11142220 not supported` error when using `celo-sepolia`, update Foundry to version 0.3.0:
-> ```bash
-> foundryup --install 0.3.0
-> ```
+The script will:
+- ✅ Deploy the receiver contract on Base Sepolia
+- ✅ Display the contract address
+- ✅ Provide instructions to update your `.env` files
+
+**Save the `RECEIVER_ADDRESS` for the next step!**
+
+### Step 3: Deploy Sender Contract (Celo Sepolia)
+
+Add the receiver address to your `.env`:
+```bash
+# Add this line to .env
+RECEIVER_ADDRESS=0x... # Address from Step 2
+
+# Optional: Customize scope seed
+SCOPE_SEED="proof-of-human-hyperlane"
+```
+
+Deploy the sender:
+```bash
+# Make script executable
+chmod +x script/deploy-proof-of-human-sender.sh
+
+# Deploy sender on Celo Sepolia
+./script/deploy-proof-of-human-sender.sh
+```
 
 The script will:
-- ✅ Build contracts with Foundry
-- ✅ Deploy ProofOfHuman contract
-- ✅ Verify contract on CeloScan
-- ✅ Display deployment summary
+- ✅ Deploy the sender contract on Celo Sepolia
+- ✅ **Fund the contract with 0.01 CELO** (~10 automatic bridges)
+- ✅ Display both contract addresses and contract balance
+- ✅ Provide complete frontend `.env` configuration
+- ✅ Show commands to automatically update your frontend `.env`
 
-### Step 3: Frontend Configuration
+**The script provides all the configuration you need and funds automatic bridging!**
 
-Configure the frontend:
+### Step 4: Frontend Configuration
 
+The sender deployment script provides the complete frontend configuration!
+
+**Option A: Manual Configuration**
 ```bash
 cd ../app  # Go to app directory
 cp .env.example .env
+# Edit .env with the values from the deployment script output
 ```
 
-Edit `.env`:
+**Option B: Automatic Configuration (Recommended)**
+
+The deployment script shows commands to automatically update your `.env`:
 ```bash
-# Your deployed contract address from Step 2
-# IMPORTANT: address should be lowercase
-NEXT_PUBLIC_SELF_ENDPOINT=0xyour_contract_address
-
-# App configuration
-NEXT_PUBLIC_SELF_APP_NAME="Self Workshop"
-NEXT_PUBLIC_SELF_SCOPE_SEED="self-workshop"
+cd ../app
+echo 'NEXT_PUBLIC_SELF_ENDPOINT=0x...' > .env
+echo 'NEXT_PUBLIC_RECEIVER_ADDRESS=0x...' >> .env
+echo 'NEXT_PUBLIC_SELF_APP_NAME="Self + Hyperlane Workshop"' >> .env
+echo 'NEXT_PUBLIC_SELF_SCOPE_SEED="proof-of-human-hyperlane"' >> .env
 ```
 
-### Step 4: Start Development
+Just copy and paste the commands from the deployment script output!
+
+### Step 5: Start Development
 
 ```bash
 # Navigate to app directory and start the Next.js development server
@@ -104,6 +161,35 @@ npm run dev
 ```
 
 Visit `http://localhost:3000` to see your verification application!
+
+---
+
+## 🔄 How It Works
+
+### Automatic Cross-Chain Bridging
+
+1. **User verifies on Celo Sepolia** through your frontend
+2. **Verification succeeds** → `customVerificationHook` is called
+3. **Contract uses its balance** → Automatically pays Hyperlane gas & bridges to Base
+4. **Data arrives on Base** → Receiver stores verification status (~2 minutes)
+
+The deployment script automatically funds the sender contract with 0.01 CELO, enough for ~10 automatic bridges.
+
+### Manual Bridging (Optional)
+
+If the contract runs out of funds or you need to re-send:
+
+```bash
+# Fund the contract for more automatic bridges
+cast send <SENDER_ADDRESS> --value 0.01ether --rpc-url celo-sepolia --private-key $PRIVATE_KEY
+
+# Or manually bridge a specific verification
+export SENDER_ADDRESS=0x...
+export RECEIVER_ADDRESS=0x...
+forge script script/SendVerificationCrossChain.s.sol:SendVerificationCrossChain \
+  --rpc-url celo-sepolia \
+  --broadcast
+```
 
 ---
 
@@ -117,99 +203,151 @@ The Self SDK is configured in your React components (`app/app/page.tsx`):
 import { SelfAppBuilder, countries } from '@selfxyz/qrcode';
 
 const app = new SelfAppBuilder({
-    version: 2,                    // Always use V2
-    appName: process.env.NEXT_PUBLIC_SELF_APP_NAME,
-    scope: process.env.NEXT_PUBLIC_SELF_SCOPE_SEED,
-    endpoint: process.env.NEXT_PUBLIC_SELF_ENDPOINT,  // Your contract address (lowercase)
-    logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png", // Logo URL or base64
-    userId: userId,                // User's wallet address or identifier
-    endpointType: "staging_celo",  // "staging_celo" for testnet, "celo" for mainnet
-    userIdType: "hex",             // "hex" for Ethereum addresses, "uuid" for UUIDs
-    userDefinedData: "Hola Buenos Aires!!!",  // Optional custom data
+    version: 2,
+    appName: "Self + Hyperlane Workshop",
+    scope: "proof-of-human-hyperlane",
+    endpoint: process.env.NEXT_PUBLIC_SELF_ENDPOINT,  // Sender contract address
+    logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
+    userId: userId,
+    endpointType: "staging_celo",  // Use Celo Sepolia for verification
+    userIdType: "hex",
+    userDefinedData: "Cross-chain verification example",
     
     disclosures: {
-        // Verification requirements (must match your contract config)
         minimumAge: 18,
-        excludedCountries: [countries.UNITED_STATES],  // Use country constants
-        // ofac: true,               // Optional: OFAC compliance checking
-        
-        // Optional disclosures (uncomment to request):
-        // name: true,
-        // issuing_state: true,
-        // nationality: true,
-        // date_of_birth: true,
-        // passport_number: true,
-        // gender: true,
-        // expiry_date: true,
+        excludedCountries: [countries.UNITED_STATES],
     }
 }).build();
 ```
 
-### Smart Contract Configuration
+### Sender Contract (Celo Sepolia)
 
-Your contract extends `SelfVerificationRoot` (`contracts/src/ProofOfHuman.sol`):
+`ProofOfHumanSender` inherits from `SelfVerificationRoot`:
 
 ```solidity
-contract ProofOfHuman is SelfVerificationRoot {
-    // Verification result storage
-    bool public verificationSuccessful;
-    address public lastUserAddress;
-    bytes32 public verificationConfigId;
-    
-    constructor(
-        address identityVerificationHubV2Address,
-        string memory scopeSeed,  // Seed used to generate scope
-        SelfUtils.UnformattedVerificationConfigV2 memory _verificationConfig
-    ) SelfVerificationRoot(identityVerificationHubV2Address, scopeSeed) {
-        // Format and set verification config
-        verificationConfig = SelfUtils.formatVerificationConfigV2(_verificationConfig);
-        verificationConfigId = IIdentityVerificationHubV2(identityVerificationHubV2Address)
-            .setVerificationConfigV2(verificationConfig);
-    }
-    
+contract ProofOfHumanSender is SelfVerificationRoot {
     function customVerificationHook(
         ISelfVerificationRoot.GenericDiscloseOutputV2 memory output,
         bytes memory userData
     ) internal override {
-        // Store verification results
+        // Store verification data
         verificationSuccessful = true;
         lastOutput = output;
         lastUserAddress = address(uint160(output.userIdentifier));
-        
+
         emit VerificationCompleted(output, userData);
+        
+        // Automatically bridge if ETH was sent with verification
+        if (address(this).balance > 0) {
+            bytes memory message = abi.encode(
+                bytes32(output.userIdentifier),
+                lastUserAddress,
+                userData,
+                block.timestamp
+            );
+            
+            bytes32 messageId = MAILBOX.dispatch{value: address(this).balance}(
+                DESTINATION_DOMAIN,
+                defaultRecipient.addressToBytes32(),
+                message
+            );
+            
+            emit VerificationSentCrossChain(messageId, defaultRecipient, lastUserAddress, bytes32(output.userIdentifier));
+        }
     }
-    
-    function getConfigId(
-        bytes32, /* destinationChainId */
-        bytes32, /* userIdentifier */
-        bytes memory /* userDefinedData */
-    ) public view override returns (bytes32) {
-        return verificationConfigId;
+}
+```
+
+### Receiver Contract (Base Sepolia)
+
+`ProofOfHumanReceiver` is a simple Hyperlane message receiver:
+
+```solidity
+contract ProofOfHumanReceiver is IMessageRecipient, Ownable {
+    function handle(
+        uint32 _origin,
+        bytes32 _sender,
+        bytes calldata _message
+    ) external override {
+        // Verify caller is Hyperlane Mailbox
+        if (msg.sender != address(MAILBOX)) revert NotMailbox();
+        
+        // Verify origin is Celo Sepolia
+        if (_origin != SOURCE_DOMAIN) revert InvalidOrigin(_origin, SOURCE_DOMAIN);
+        
+        // Decode and store verification data
+        (bytes32 userIdentifier, address userAddress, bytes memory userData, uint256 verifiedAt) 
+            = abi.decode(_message, (bytes32, address, bytes, uint256));
+        
+        verifications[userAddress] = VerificationData({
+            userIdentifier: userIdentifier,
+            userAddress: userAddress,
+            userData: userData,
+            verifiedAt: verifiedAt,
+            receivedAt: block.timestamp,
+            exists: true,
+            isVerified: true
+        });
+        
+        emit VerificationReceived(userAddress, userIdentifier, block.timestamp);
     }
 }
 ```
 
 ### Network Configuration
 
-#### Celo Sepolia (Testnet)
-- **Hub Address**: `0x16ECBA51e18a4a7e61fdC417f0d47AFEeDfbed74`
+#### Celo Sepolia (Source Chain)
+- **Chain ID**: 11142220
+- **Identity Hub**: `0x16ECBA51e18a4a7e61fdC417f0d47AFEeDfbed74`
+- **Hyperlane Mailbox**: `0xD0680F80F4f947968206806C2598Cbc5b6FE5b03`
 - **RPC**: `https://forno.celo-sepolia.celo-testnet.org`
 - **Explorer**: `https://celo-sepolia.blockscout.com/`
-- **Supports**: Mock passports for testing
 
-#### Celo Mainnet
-- **Hub Address**: `0xe57F4773bd9c9d8b6Cd70431117d353298B9f5BF`
-- **RPC**: `https://forno.celo.org`
-- **Explorer**: `https://celoscan.io`
-- **Supports**: Real passport verification
+#### Base Sepolia (Destination Chain)
+- **Chain ID**: 84532
+- **Hyperlane Mailbox**: `0x6966b0E55883d49BFB24539356a2f8A673E02039`
+- **RPC**: `https://sepolia.base.org`
+- **Explorer**: `https://sepolia.basescan.org`
 
 ---
 
-### Getting Help
+## 🧪 Testing
 
-- 📱 **Telegram Community**: [Self Protocol Builders Group](https://t.me/selfprotocolbuilder)
-- 📖 **Documentation**: [docs.self.xyz](https://docs.self.xyz)
-- 🎥 **Workshop Video**: [ETHGlobal Cannes](https://www.youtube.com/live/0Jg1o9BFUBs)
+### Run Contract Tests
+
+```bash
+cd contracts
+forge test -vv
+```
+
+All 23 tests should pass:
+- `ProofOfHumanSender`: 8 tests
+- `ProofOfHumanReceiver`: 11 tests  
+- `HyperlaneCrossChain`: 3 tests
+
+### Verify Cross-Chain Message
+
+After a user verifies, check the message on Hyperlane Explorer:
+
+```bash
+# Get the message ID from transaction logs
+cast logs --rpc-url celo-sepolia \
+  --address <SENDER_ADDRESS> \
+  --from-block <BLOCK_NUMBER>
+
+# Track on Hyperlane Explorer
+https://explorer.hyperlane.xyz/message/<MESSAGE_ID>
+```
+
+### Check Verification on Base
+
+```bash
+# Check if user is verified on Base Sepolia
+cast call <RECEIVER_ADDRESS> \
+  "isVerified(address)(bool)" \
+  <USER_ADDRESS> \
+  --rpc-url base-sepolia
+```
 
 ---
 
@@ -217,35 +355,35 @@ contract ProofOfHuman is SelfVerificationRoot {
 
 ```
 workshop/
-├── app/                                 # Next.js frontend application
+├── app/                          # Next.js frontend
 │   ├── app/
-│   │   ├── page.tsx                     # Main QR code page with Self SDK integration
-│   │   ├── layout.tsx                   # Root layout with metadata
-│   │   ├── globals.css                  # Global styles
-│   │   └── verified/
-│   │       ├── page.tsx                 # Success page after verification
-│   │       └── page.module.css          # Success page styles
-│   ├── .env.example                     # Frontend environment template
-│   ├── package.json                     # Frontend dependencies
-│   ├── tailwind.config.ts               # Tailwind CSS configuration
-│   └── README.md                        # Frontend documentation
+│   │   ├── page.tsx              # QR code verification page
+│   │   ├── verified/             # Success page
+│   │   └── globals.css
+│   └── .env.example
 │
-├── contracts/                           # Foundry smart contracts
+├── contracts/                    # Foundry contracts
 │   ├── src/
-│   │   └── ProofOfHuman.sol             # Main verification contract
+│   │   ├── ProofOfHumanSender.sol      # Sender contract (Celo)
+│   │   ├── ProofOfHumanReceiver.sol    # Receiver contract (Base)
+│   │   ├── ProofOfHuman.sol            # Base implementation
+│   │   └── IMailboxV3.sol              # Hyperlane interface
+│   │
 │   ├── script/
-│   │   ├── Base.s.sol                   # Base script utilities
-│   │   ├── DeployProofOfHuman.s.sol     # Foundry deployment script
-│   │   └── deploy-proof-of-human.sh     # Automated deployment script
-│   ├── lib/                             # Dependencies
-│   │   ├── forge-std/                   # Foundry standard library
-│   │   └── openzeppelin-contracts/      # OpenZeppelin contracts
-│   ├── .env.example                     # Contract environment template
-│   ├── foundry.toml                     # Foundry configuration
-│   ├── package.json                     # Contract dependencies
-│   └── README.md                        # Contract documentation
+│   │   ├── deploy-proof-of-human-receiver.sh   # Deploy receiver
+│   │   ├── deploy-proof-of-human-sender.sh     # Deploy sender
+│   │   ├── DeployProofOfHumanReceiver.s.sol
+│   │   ├── DeployProofOfHumanSender.s.sol
+│   │   └── SendVerificationCrossChain.s.sol    # Manual bridging
+│   │
+│   ├── test/
+│   │   ├── ProofOfHumanSender.t.sol
+│   │   ├── ProofOfHumanReceiver.t.sol
+│   │   └── HyperlaneCrossChain.t.sol
+│   │
+│   └── .env.example
 │
-└── README.md                            # This file (workshop guide)
+└── README.md                     # This file
 ```
 
 ---
@@ -253,11 +391,53 @@ workshop/
 ## 🔗 Additional Resources
 
 ### Documentation
-- [Self Protocol Docs](https://docs.self.xyz/) - Complete protocol documentation
-- [Contract Integration Guide](https://docs.self.xyz/contract-integration/basic-integration) - Smart contract specifics
-- [Frontend SDK Reference](https://docs.self.xyz/sdk-reference/selfappbuilder) - Frontend integration details
-- [Disclosure Proofs](https://docs.self.xyz/use-self/disclosures) - Available verification options
+- [Self Protocol Docs](https://docs.self.xyz/) - Identity verification
+- [Hyperlane Docs](https://docs.hyperlane.xyz/) - Cross-chain messaging
+- [Contract Integration Guide](https://docs.self.xyz/contract-integration/basic-integration)
+
+### Deployed Contracts (Example)
+- **Sender (Celo Sepolia)**: `0x210cEb7F310197a3D4E83554086cCeD570314Ee4`
+- **Receiver (Base Sepolia)**: `0x0690e42FA30BcC48Dd0bf8BF926654e6efDFee89`
 
 ### Self App
-- [Self on iOS](https://apps.apple.com/us/app/self-zk-passport-identity/id6478563710) - iOS App
-- [Self on Android](https://play.google.com/store/apps/details?id=com.proofofpassportapp) - Android App
+- [Self on iOS](https://apps.apple.com/us/app/self-zk-passport-identity/id6478563710)
+- [Self on Android](https://play.google.com/store/apps/details?id=com.proofofpassportapp)
+
+### Community
+- 📱 **Telegram**: [Self Protocol Builders](https://t.me/selfprotocolbuilder)
+- 💬 **Hyperlane Discord**: [Join Here](https://discord.gg/hyperlane)
+
+---
+
+## 💡 Use Cases
+
+- **DeFi on Base, verify on Celo** - Keep verification on Self's native chain
+- **Multi-chain identity** - Verify once, use everywhere
+- **Gasless Base transactions** - Users only pay on Celo
+- **Compliance bridging** - Verify KYC on one chain, use on others
+
+---
+
+## 🐛 Troubleshooting
+
+### Verification not bridging?
+- Ensure you sent ETH with the verification transaction
+- Check Hyperlane Explorer for message status
+- Verify receiver contract is deployed correctly
+
+### "Chain 11142220 not supported" error?
+Update Foundry:
+```bash
+foundryup --install 0.3.0
+```
+
+### Frontend not connecting?
+- Ensure `NEXT_PUBLIC_SELF_ENDPOINT` is lowercase
+- Verify sender contract is deployed on Celo Sepolia
+- Check that `NEXT_PUBLIC_SELF_SCOPE_SEED` matches deployment
+
+---
+
+## 📝 License
+
+MIT

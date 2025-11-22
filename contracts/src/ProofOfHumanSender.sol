@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import { ProofOfHuman } from "./ProofOfHuman.sol";
-import { IMailboxV3 } from "./IMailboxV3.sol";
+import { SelfVerificationRoot } from "@selfxyz/contracts/contracts/abstract/SelfVerificationRoot.sol";
+import { ISelfVerificationRoot } from "@selfxyz/contracts/contracts/interfaces/ISelfVerificationRoot.sol";
+import { SelfStructs } from "@selfxyz/contracts/contracts/libraries/SelfStructs.sol";
 import { SelfUtils } from "@selfxyz/contracts/contracts/libraries/SelfUtils.sol";
+import { IIdentityVerificationHubV2 } from "@selfxyz/contracts/contracts/interfaces/IIdentityVerificationHubV2.sol";
+import { IMailboxV3 } from "./IMailboxV3.sol";
 import { TypeCasts } from "@hyperlane-xyz/core/contracts/libs/TypeCasts.sol";
 
 /**
  * @title ProofOfHumanSender
- * @notice Extends ProofOfHuman to send verification data cross-chain via Hyperlane
+ * @notice Implements SelfVerificationRoot to verify users and send verification data cross-chain via Hyperlane
  * @dev Deployed on source chain (Celo Sepolia or Celo Mainnet)
  */
-contract ProofOfHumanSender is ProofOfHuman {
+contract ProofOfHumanSender is SelfVerificationRoot {
     using TypeCasts for address;
 
     // ============ Immutable Storage ============
@@ -22,10 +25,29 @@ contract ProofOfHumanSender is ProofOfHuman {
     /// @notice Destination chain domain ID (e.g., Base Sepolia = 84532)
     uint32 public immutable DESTINATION_DOMAIN;
 
+    // ============ Storage ============
+
     /// @notice Default recipient address on destination chain
     address public defaultRecipient;
 
+    /// @notice Verification result storage
+    ISelfVerificationRoot.GenericDiscloseOutputV2 public lastOutput;
+    bool public verificationSuccessful;
+    bytes public lastUserData;
+    address public lastUserAddress;
+
+    /// @notice Verification config storage
+    SelfStructs.VerificationConfigV2 public verificationConfig;
+    bytes32 public verificationConfigId;
+
     // ============ Events ============
+
+    /**
+     * @notice Emitted when verification is completed
+     * @param output The verification output
+     * @param userData The user data passed through verification
+     */
+    event VerificationCompleted(ISelfVerificationRoot.GenericDiscloseOutputV2 output, bytes userData);
 
     /**
      * @notice Emitted when verification data is sent cross-chain
@@ -66,15 +88,17 @@ contract ProofOfHumanSender is ProofOfHuman {
         uint32 _destinationDomain,
         address _defaultRecipient
     )
-        ProofOfHuman(
-            identityVerificationHubV2Address,
-            scopeSeed,
-            _verificationConfig
-        )
+        SelfVerificationRoot(identityVerificationHubV2Address, scopeSeed)
     {
         if (_mailbox == address(0)) revert ZeroAddressMailbox();
         if (_defaultRecipient == address(0)) revert ZeroAddressRecipient();
         
+        // Initialize verification configuration
+        verificationConfig = SelfUtils.formatVerificationConfigV2(_verificationConfig);
+        verificationConfigId =
+            IIdentityVerificationHubV2(identityVerificationHubV2Address).setVerificationConfigV2(verificationConfig);
+        
+        // Initialize Hyperlane configuration
         MAILBOX = IMailboxV3(_mailbox);
         DESTINATION_DOMAIN = _destinationDomain;
         defaultRecipient = _defaultRecipient;
@@ -86,12 +110,66 @@ contract ProofOfHumanSender is ProofOfHuman {
      */
     receive() external payable {}
 
+    // ============ Internal Functions ============
+
+    /**
+     * @notice Implementation of customVerificationHook from SelfVerificationRoot
+     * @dev Stores verification data and automatically bridges if ETH was sent
+     * @param output The verification output from the hub
+     * @param userData The user data passed through verification
+     */
+    function customVerificationHook(
+        ISelfVerificationRoot.GenericDiscloseOutputV2 memory output,
+        bytes memory userData
+    )
+        internal
+        override
+    {
+        // Store verification data
+        verificationSuccessful = true;
+        lastOutput = output;
+        lastUserData = userData;
+        lastUserAddress = address(uint160(output.userIdentifier));
+
+        emit VerificationCompleted(output, userData);
+        
+        // Automatically bridge if contract has ETH balance (sent with verification tx)
+        if (address(this).balance > 0) {
+            // Encode the verification data
+            bytes memory message = abi.encode(
+                bytes32(output.userIdentifier),
+                lastUserAddress,
+                userData,
+                block.timestamp
+            );
+            
+            // Convert default recipient address to bytes32 for Hyperlane
+            bytes32 recipientBytes32 = defaultRecipient.addressToBytes32();
+            
+            // Dispatch message via Hyperlane Mailbox
+            bytes32 messageId = MAILBOX.dispatch{value: address(this).balance}(
+                DESTINATION_DOMAIN,
+                recipientBytes32,
+                message
+            );
+            
+            emit VerificationSentCrossChain(
+                messageId,
+                defaultRecipient,
+                lastUserAddress,
+                bytes32(output.userIdentifier)
+            );
+        }
+    }
+
     // ============ External Functions ============
 
     /**
-     * @notice Send verification data to destination chain via Hyperlane
+     * @notice Manually send verification data to a custom recipient on destination chain
      * @param recipient Address of the recipient contract on destination chain
      * @return messageId Hyperlane message identifier
+     * @dev This is optional - bridging happens automatically in customVerificationHook if ETH is sent with verification
+     * @dev Use this function to bridge to a different recipient or re-send verification data
      * @dev Requires payment for gas on destination chain (send ETH with transaction)
      */
     function sendVerificationCrossChain(address recipient)
@@ -131,8 +209,10 @@ contract ProofOfHumanSender is ProofOfHuman {
     }
 
     /**
-     * @notice Send verification data to default recipient on destination chain
+     * @notice Manually re-send verification data to default recipient on destination chain
      * @return messageId Hyperlane message identifier
+     * @dev This is optional - bridging to default recipient happens automatically in customVerificationHook
+     * @dev Use this function to re-send verification data if needed
      */
     function sendVerificationToDefaultRecipient()
         external
@@ -153,6 +233,24 @@ contract ProofOfHumanSender is ProofOfHuman {
     }
 
     // ============ View Functions ============
+
+    /**
+     * @notice Implementation of getConfigId from SelfVerificationRoot
+     * @dev Returns the verification config ID for this contract
+     * @return The verification configuration ID
+     */
+    function getConfigId(
+        bytes32, /* destinationChainId */
+        bytes32, /* userIdentifier */
+        bytes memory /* userDefinedData */
+    )
+        public
+        view
+        override
+        returns (bytes32)
+    {
+        return verificationConfigId;
+    }
 
     /**
      * @notice Get the local domain (chain) ID

@@ -8,6 +8,13 @@ import {ProofOfHumanReceiver} from "../src/ProofOfHumanReceiver.sol";
 import {IMessageRecipient} from "@hyperlane-xyz/core/contracts/interfaces/IMessageRecipient.sol";
 import {TypeCasts} from "@hyperlane-xyz/core/contracts/libs/TypeCasts.sol";
 import {SelfUtils} from "@selfxyz/contracts/contracts/libraries/SelfUtils.sol";
+import {SelfStructs} from "@selfxyz/contracts/contracts/libraries/SelfStructs.sol";
+
+contract MockIdentityHubCrossChain {
+    function setVerificationConfigV2(SelfStructs.VerificationConfigV2 memory) external pure returns (bytes32) {
+        return keccak256("mock-config-id");
+    }
+}
 
 /**
  * @title HyperlaneCrossChainTest
@@ -23,7 +30,7 @@ contract HyperlaneCrossChainTest is Test {
     ProofOfHumanSender public sender;
     ProofOfHumanReceiver public receiver;
     
-    address public mockIdentityHub;
+    MockIdentityHubCrossChain public mockIdentityHub;
     address public user = address(0xBEEF);
     
     uint32 constant CELO_SEPOLIA_DOMAIN = 11142220;
@@ -38,12 +45,9 @@ contract HyperlaneCrossChainTest is Test {
         celoMailbox.setRemoteMailbox(BASE_SEPOLIA_DOMAIN, address(baseMailbox));
         baseMailbox.setRemoteMailbox(CELO_SEPOLIA_DOMAIN, address(celoMailbox));
         
-        mockIdentityHub = address(0x1234);
+        mockIdentityHub = new MockIdentityHubCrossChain();
         
-        // Deploy receiver on Base
-        receiver = new ProofOfHumanReceiver(address(baseMailbox), CELO_SEPOLIA_DOMAIN);
-        
-        // Deploy sender on Celo
+        // Create verification config
         string[] memory forbiddenCountries = new string[](0);
         SelfUtils.UnformattedVerificationConfigV2 memory verificationConfig = 
             SelfUtils.UnformattedVerificationConfigV2({
@@ -52,9 +56,16 @@ contract HyperlaneCrossChainTest is Test {
                 ofacEnabled: false
             });
         
+        // Deploy receiver on Base (no verification config needed - only receives messages)
+        receiver = new ProofOfHumanReceiver(
+            address(baseMailbox),
+            CELO_SEPOLIA_DOMAIN
+        );
+        
+        // Deploy sender on Celo (performs Self Protocol verification)
         sender = new ProofOfHumanSender(
-            mockIdentityHub,
-            "test-scope",
+            address(mockIdentityHub),
+            "test-scope-sender",
             verificationConfig,
             address(celoMailbox),
             BASE_SEPOLIA_DOMAIN,
@@ -199,11 +210,26 @@ contract MockHyperlaneMailbox {
         address remoteMailbox = remoteMailboxes[message.destination];
         require(remoteMailbox != address(0), "No remote mailbox");
         
-        // Simulate message delivery
-        IMessageRecipient recipient = IMessageRecipient(message.recipient.bytes32ToAddress());
-        recipient.handle(localDomain, address(this).addressToBytes32(), message.body);
+        // Simulate message delivery - call the remote mailbox to deliver
+        MockHyperlaneMailbox(remoteMailbox).deliverMessage(
+            localDomain,
+            address(this).addressToBytes32(),
+            message.recipient.bytes32ToAddress(),
+            message.body
+        );
         
         message.processed = true;
+    }
+    
+    function deliverMessage(
+        uint32 origin,
+        bytes32 sender,
+        address recipient,
+        bytes memory messageBody
+    ) external {
+        // This function is called by the remote mailbox to deliver a message
+        // It pranks to make the call appear to come from this mailbox
+        IMessageRecipient(recipient).handle(origin, sender, messageBody);
     }
     
     function delivered(bytes32 messageId) external view returns (bool) {
