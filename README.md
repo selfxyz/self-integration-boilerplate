@@ -1,10 +1,15 @@
-# Self Protocol Workshop
+# Self Protocol Boilerplate Example
 
 Learn to build privacy-preserving identity verification with [Self Protocol](https://self.xyz/) - from frontend QR codes to smart contract attestations on Celo.
 
 > 📺 **New to Self?** Watch the [ETHGlobal Workshop](https://www.loom.com/share/8a6d116a5f66415998a496f06fefdc23) first.
 
+## Branches
 This main branch of the repo contains an example of onchain verification. If you would like to see an example with offchain/backend verification, please check out the 'backend-verification' branch.
+
+- `main`: on chain verification
+- `backend-verification`: off chain/backend verification
+- `hyperlane-example`: onchain verification w/ Hyperlane bridging
 
 ## Prerequisites
 
@@ -14,23 +19,22 @@ This main branch of the repo contains an example of onchain verification. If you
 
 ---
 
-## Workshop Steps
+## Integration Steps
 
 ### Step 1: Repository Setup
 
 ```bash
-# Clone the workshop repository
-git clone <repository-url>
+# Clone the boilerplate repository
+git clone https://github.com/selfxyz/self-integration-boilerplate.git
 cd workshop
 
 # Install frontend dependencies
 cd app
 npm install
-cd ..
 
 # Install contract dependencies
 cd contracts
-npm install        
+npm install
 forge install foundry-rs/forge-std
 ```
 
@@ -39,7 +43,7 @@ forge install foundry-rs/forge-std
 Navigate to the contracts folder and configure deployment:
 
 ```bash
-# Copy and configure environment
+# Create copy of env
 cp .env.example .env
 ```
 
@@ -60,14 +64,9 @@ Deploy the contract:
 # Make script executable
 chmod +x script/deploy-proof-of-human.sh
 
-# Deploy contract (handles everything automatically)
+# Deploy contract
 ./script/deploy-proof-of-human.sh
 ```
-
-> ** Install foundery
-> ```bash
-> foundryup
-> ```
 
 The script will:
 - ✅ Build contracts with Foundry
@@ -79,8 +78,9 @@ The script will:
 
 Configure the frontend:
 
+Navigate to app folder
 ```bash
-cd ../app  # Go to app directory
+# Create copy of env
 cp .env.example .env
 ```
 
@@ -98,7 +98,7 @@ NEXT_PUBLIC_SELF_SCOPE_SEED="self-workshop"
 ### Step 4: Start Development
 
 ```bash
-# Navigate to app directory and start the Next.js development server
+# Start the Next.js development server
 cd app
 npm run dev
 ```
@@ -120,7 +120,7 @@ const app = new SelfAppBuilder({
     version: 2,                    // Always use V2
     appName: process.env.NEXT_PUBLIC_SELF_APP_NAME,
     scope: process.env.NEXT_PUBLIC_SELF_SCOPE_SEED,
-    endpoint: process.env.NEXT_PUBLIC_SELF_ENDPOINT,  // Your contract address (lowercase)
+    endpoint: process.env.NEXT_PUBLIC_SELF_ENDPOINT,  // Your contract address (must be lowercase)
     logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png", // Logo URL or base64
     userId: userId,                // User's wallet address or identifier
     endpointType: "staging_celo",  // "staging_celo" for testnet, "celo" for mainnet
@@ -216,7 +216,7 @@ contract ProofOfHuman is SelfVerificationRoot {
 ## 📁 Project Structure
 
 ```
-workshop/
+self-integration-example/
 ├── app/                                 # Next.js frontend application
 │   ├── app/
 │   │   ├── page.tsx                     # Main QR code page with Self SDK integration
@@ -242,10 +242,9 @@ workshop/
 │   │   └── openzeppelin-contracts/      # OpenZeppelin contracts
 │   ├── .env.example                     # Contract environment template
 │   ├── foundry.toml                     # Foundry configuration
-│   ├── package.json                     # Contract dependencies
-│   └── README.md                        # Contract documentation
+│   └── package.json                     # Contract dependencies
 │
-└── README.md                            # This file (workshop guide)
+└── README.md                            # This file
 ```
 
 ---
