@@ -64,9 +64,9 @@ chmod +x script/deploy-proof-of-human.sh
 ./script/deploy-proof-of-human.sh
 ```
 
-> **⚠️ Troubleshooting Celo Sepolia**: If you encounter a `Chain 11142220 not supported` error when using `celo-sepolia`, update Foundry to version 0.3.0:
+> ** Install foundery
 > ```bash
-> foundryup --install 0.3.0
+> foundryup
 > ```
 
 The script will:
