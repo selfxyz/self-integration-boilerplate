@@ -59,8 +59,8 @@ This branch demonstrates cross-chain verification bridging. For simple on-chain 
 ```bash
 # Clone the boilerplate repository
 git clone https://github.com/selfxyz/self-integration-boilerplate.git
+git switch hyperlane-example
 cd workshop
-git checkout hyperlane-example
 
 # Install frontend dependencies
 cd app
