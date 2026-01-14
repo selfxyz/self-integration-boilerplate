@@ -26,6 +26,7 @@ This main branch of the repo contains an example of onchain verification. If you
 ```bash
 # Clone the workshop repository
 git clone <repository-url>
+git switch backend-verification
 cd workshop/app
 
 # Install dependencies
