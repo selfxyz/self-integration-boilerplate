@@ -1,4 +1,4 @@
-# Self + Hyperlane Workshop Frontend
+# Self + Hyperlane Integration Example Front End
 
 This project demonstrates cross-chain identity verification using [Self Protocol](https://self.xyz/) for identity verification on Celo and [Hyperlane](https://hyperlane.xyz/) for bridging verification data to Base.
 

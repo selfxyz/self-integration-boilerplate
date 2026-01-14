@@ -1,10 +1,15 @@
-# Self Protocol + Hyperlane Cross-Chain Verification Workshop
+# Self Protocol Boilerplate Example with Hyperlane Bridging
 
 Learn to build privacy-preserving identity verification with [Self Protocol](https://self.xyz/) and bridge it cross-chain using [Hyperlane](https://hyperlane.xyz/) - verify on Celo, use on Base!
 
 > 📺 **New to Self?** Watch the [ETHGlobal Workshop](https://www.youtube.com/live/0Jg1o9BFUBs?si=4g0okIn91QMIzew-) first.
 
+## Branches
 This branch demonstrates cross-chain verification bridging. For simple on-chain verification, check the `main` branch.
+
+- `main`: on chain verification
+- `backend-verification`: off chain/backend verification
+- `hyperlane-example`: onchain verification w/ Hyperlane bridging
 
 ## 🌉 Architecture Overview
 
@@ -47,25 +52,24 @@ This branch demonstrates cross-chain verification bridging. For simple on-chain 
 
 ---
 
-## Workshop Steps
+## Integration Steps
 
 ### Step 1: Repository Setup
 
 ```bash
-# Clone the workshop repository
-git clone <repository-url>
+# Clone the boilerplate repository
+git clone https://github.com/selfxyz/self-integration-boilerplate.git
 cd workshop
 git checkout hyperlane-example
 
 # Install frontend dependencies
 cd app
 npm install
-cd ..
 
 # Install contract dependencies
 cd contracts
-npm install        
-forge install
+npm install
+forge install foundry-rs/forge-std
 ```
 
 ### Step 2: Deploy Receiver Contract (Base Sepolia)
@@ -73,7 +77,7 @@ forge install
 First, deploy the receiver contract on Base Sepolia:
 
 ```bash
-cd contracts
+# Create copy of env
 cp .env.example .env
 ```
 
@@ -115,8 +119,8 @@ Deploy the sender:
 # Make script executable
 chmod +x script/deploy-proof-of-human-sender.sh
 
-# Deploy sender on Celo Sepolia
-./script/deploy-proof-of-human-sender.sh
+# Deploy contract
+./script/deploy-proof-of-human.sh
 ```
 
 The script will:
@@ -130,11 +134,9 @@ The script will:
 
 ### Step 4: Frontend Configuration
 
-The sender deployment script provides the complete frontend configuration!
-
-**Option A: Manual Configuration**
+Navigate to app folder
 ```bash
-cd ../app  # Go to app directory
+# Create copy of env
 cp .env.example .env
 # Edit .env with the values from the deployment script output
 ```
@@ -155,7 +157,7 @@ Just copy and paste the commands from the deployment script output!
 ### Step 5: Start Development
 
 ```bash
-# Navigate to app directory and start the Next.js development server
+# Start the Next.js development server
 cd app
 npm run dev
 ```
@@ -203,15 +205,15 @@ The Self SDK is configured in your React components (`app/app/page.tsx`):
 import { SelfAppBuilder, countries } from '@selfxyz/qrcode';
 
 const app = new SelfAppBuilder({
-    version: 2,
-    appName: "Self + Hyperlane Workshop",
-    scope: "proof-of-human-hyperlane",
-    endpoint: process.env.NEXT_PUBLIC_SELF_ENDPOINT,  // Sender contract address
-    logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png",
-    userId: userId,
-    endpointType: "staging_celo",  // Use Celo Sepolia for verification
-    userIdType: "hex",
-    userDefinedData: "Cross-chain verification example",
+    version: 2,                    // Always use V2
+    appName: process.env.NEXT_PUBLIC_SELF_APP_NAME,
+    scope: process.env.NEXT_PUBLIC_SELF_SCOPE_SEED,
+    endpoint: process.env.NEXT_PUBLIC_SELF_ENDPOINT,  // Your contract address (must be lowercase)
+    logoBase64: "https://i.postimg.cc/mrmVf9hm/self.png", // Logo URL or base64
+    userId: userId,                // User's wallet address or identifier
+    endpointType: "staging_celo",  // "staging_celo" for testnet, "celo" for mainnet
+    userIdType: "hex",             // "hex" for Ethereum addresses, "uuid" for UUIDs
+    userDefinedData: "Hola Buenos Aires!!!",  // Optional custom data
     
     disclosures: {
         minimumAge: 18,
@@ -354,8 +356,8 @@ cast call <RECEIVER_ADDRESS> \
 ## 📁 Project Structure
 
 ```
-workshop/
-├── app/                          # Next.js frontend
+self-integration-example/
+├── app/                                 # Next.js frontend application
 │   ├── app/
 │   │   ├── page.tsx              # QR code verification page
 │   │   ├── verified/             # Success page
@@ -370,20 +372,27 @@ workshop/
 │   │   └── IMailboxV3.sol              # Hyperlane interface
 │   │
 │   ├── script/
+│   │   ├── Base.s.sol                   # Base script utilities
+│   │   ├── DeployProofOfHuman.s.sol     # Foundry deployment script
+│   │   └── deploy-proof-of-human.sh     # Automated deployment script
+│   ├── lib/                             # Dependencies
+│   │   ├── forge-std/                   # Foundry standard library
+│   │   └── openzeppelin-contracts/      # OpenZeppelin contracts
+│   ├── .env.example                     # Contract environment template
+│   ├── foundry.toml                     # Foundry configuration
+│   ├── package.json                     # Contract dependencies
 │   │   ├── deploy-proof-of-human-receiver.sh   # Deploy receiver
 │   │   ├── deploy-proof-of-human-sender.sh     # Deploy sender
 │   │   ├── DeployProofOfHumanReceiver.s.sol
 │   │   ├── DeployProofOfHumanSender.s.sol
 │   │   └── SendVerificationCrossChain.s.sol    # Manual bridging
 │   │
-│   ├── test/
-│   │   ├── ProofOfHumanSender.t.sol
-│   │   ├── ProofOfHumanReceiver.t.sol
-│   │   └── HyperlaneCrossChain.t.sol
-│   │
-│   └── .env.example
+│   └── test/
+│       ├── ProofOfHumanSender.t.sol
+│       ├── ProofOfHumanReceiver.t.sol
+│       └── HyperlaneCrossChain.t.sol
 │
-└── README.md                     # This file
+└── README.md                            # This file
 ```
 
 ---
@@ -400,44 +409,5 @@ workshop/
 - **Receiver (Base Sepolia)**: `0x0690e42FA30BcC48Dd0bf8BF926654e6efDFee89`
 
 ### Self App
-- [Self on iOS](https://apps.apple.com/us/app/self-zk-passport-identity/id6478563710)
-- [Self on Android](https://play.google.com/store/apps/details?id=com.proofofpassportapp)
-
-### Community
-- 📱 **Telegram**: [Self Protocol Builders](https://t.me/selfprotocolbuilder)
-- 💬 **Hyperlane Discord**: [Join Here](https://discord.gg/hyperlane)
-
----
-
-## 💡 Use Cases
-
-- **DeFi on Base, verify on Celo** - Keep verification on Self's native chain
-- **Multi-chain identity** - Verify once, use everywhere
-- **Gasless Base transactions** - Users only pay on Celo
-- **Compliance bridging** - Verify KYC on one chain, use on others
-
----
-
-## 🐛 Troubleshooting
-
-### Verification not bridging?
-- Ensure you sent ETH with the verification transaction
-- Check Hyperlane Explorer for message status
-- Verify receiver contract is deployed correctly
-
-### "Chain 11142220 not supported" error?
-Update Foundry:
-```bash
-foundryup --install 0.3.0
-```
-
-### Frontend not connecting?
-- Ensure `NEXT_PUBLIC_SELF_ENDPOINT` is lowercase
-- Verify sender contract is deployed on Celo Sepolia
-- Check that `NEXT_PUBLIC_SELF_SCOPE_SEED` matches deployment
-
----
-
-## 📝 License
-
-MIT
+- [Self on iOS](https://apps.apple.com/us/app/self-zk-passport-identity/id6478563710) - iOS App
+- [Self on Android](https://play.google.com/store/apps/details?id=com.proofofpassportapp) - Android App
