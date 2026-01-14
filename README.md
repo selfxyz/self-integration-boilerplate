@@ -1,8 +1,15 @@
-# Self Protocol Workshop
+# Self Protocol Boilerplate Example
 
 Learn to build privacy-preserving identity verification with [Self Protocol](https://self.xyz/) - from frontend QR codes to backend API verification.
 
 > 📺 **New to Self?** Watch the [ETHGlobal Workshop](https://www.loom.com/share/8a6d116a5f66415998a496f06fefdc23) first.
+
+## Branches
+This main branch of the repo contains an example of onchain verification. If you would like to see an example with offchain/backend verification, please check out the 'backend-verification' branch.
+
+- `main`: on chain verification
+- `backend-verification`: off chain/backend verification
+- `hyperlane-example`: onchain verification w/ Hyperlane bridging
 
 ## Prerequisites
 
@@ -12,7 +19,7 @@ Learn to build privacy-preserving identity verification with [Self Protocol](htt
 
 ---
 
-## Workshop Steps
+## Integration Steps
 
 ### Step 1: Repository Setup
 
@@ -42,11 +49,12 @@ Keep ngrok running and note the URL (e.g., `https://abc123.ngrok-free.app`).
 
 > **💡 Tip**: ngrok creates a tunnel so the Self app relayers can reach your local backend API endpoint at `/api/verify`.
 
-### Step 3: Configure Environment
+### Step 3: Frontend Configuration
 
 Configure the application:
 
 ```bash
+# Create copy of env
 cp .env.example .env
 ```
 
@@ -66,6 +74,7 @@ NEXT_PUBLIC_SELF_SCOPE_SEED="self-workshop"
 
 ```bash
 # Start the Next.js development server
+cd app
 npm run dev
 ```
 
@@ -217,7 +226,7 @@ export async function POST(req: Request) {
 ## 📁 Project Structure
 
 ```
-workshop/
+self-integration-example/
 └── app/                                 # Next.js application
     ├── app/
     │   ├── api/
